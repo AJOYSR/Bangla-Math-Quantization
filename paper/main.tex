@@ -14,8 +14,6 @@
 \usepackage{booktabs}
 \usepackage{amsmath}
 \usepackage{xcolor}
-\usepackage{tikz}
-\usetikzlibrary{positioning,arrows.meta}
 
 \input{tables/setup.tex}
 \input{tables/calibration.tex}
@@ -54,11 +52,11 @@ Conceptually, quantization damage in a low-resource language appears as repetiti
 % ================================================================ introduction
 \section{Introduction}
 
-Bangla is spoken by more than 230 million people, most of whom have limited access to the GPUs needed to run modern LLMs. Quantization stores weights in 8, 4 or fewer bits instead of 16, which cuts memory and cost \citep{dettmers2022llmint8,frantar2023gptq}. It is how small models reach laptops, phones and free cloud notebooks, so it matters most where hardware is scarce.
+Bangla is spoken by more than 230 million people, most of whom have limited access to the GPUs needed to run modern LLMs. Quantization stores weights in 8, 4 or fewer bits instead of 16, which cuts memory and cost \citep{dettmers2022llmint8,frantar2023gptq}.
 
 Quantization adds rounding error to every weight. The best methods, such as GPTQ \citep{frantar2023gptq} and AWQ \citep{lin2024awq}, reduce this error using a small \emph{calibration set} of example inputs, which in practice is usually English web text. For a model used in Bangla, this default is questionable for two reasons. First, the model's internal activations on Bangla text may differ from those on English. Second, Bangla is split into far more tokens per word than English \citep{petrov2023tokenizer,ahia2023languages}, so a solution takes more generation steps, and a small error has more chances to derail it. Step-by-step mathematics is especially exposed, because one wrong step makes the final answer wrong.
 
-Prior work shows that quantization hurts non-Latin-script languages more than English \citep{marchisio2024quantization} and that calibration data matter for compressed models \citep{williams2024calibration,zeng2024multilingual}. We study the question in a concrete setting: one small model, fine-tuned for one task in one low-resource language (Figure~\ref{fig:overview}). We make three contributions:
+Prior work shows that quantization hurts non-Latin-script languages more than English \citep{marchisio2024quantization} and that calibration data matter for compressed models \citep{williams2024calibration,zeng2024multilingual}. We study the question in a concrete setting: one small model, fine-tuned for one task in one low-resource language. We make three contributions:
 
 \begin{enumerate}
   \setlength\itemsep{0pt}
@@ -66,33 +64,6 @@ Prior work shows that quantization hurts non-Latin-script languages more than En
   \item We separate the effect of calibration \emph{language} from \emph{domain}, including a parallel design that calibrates on the same problems in Bangla and in English. Calibration language has no significant effect on accuracy but a large, significant effect on how often outputs fall into repetition loops.
   \item We show that accuracy hides much of what quantization changes: models fail by repeating themselves rather than by switching to English, and even an 8-bit model with unchanged accuracy solves a noticeably different set of problems, well beyond what numerical noise explains.
 \end{enumerate}
-
-\begin{figure*}[t]
-\centering
-\resizebox{0.78\textwidth}{!}{%
-\begin{tikzpicture}[
-  box/.style={draw=black!45, rounded corners=2pt, fill=black!3, align=center, font=\small, inner sep=4pt, minimum height=0.9cm},
-  q/.style={box, fill=blue!6, draw=blue!45},
-  c/.style={box, fill=orange!8, draw=orange!60, font=\footnotesize},
-  arr/.style={-{Stealth[length=2mm]}, black!60, thick}]
-  \node[box] (base) {Gemma-2 2B-it};
-  \node[box, right=0.45cm of base] (ft) {QLoRA fine-tuning\\3{,}000 Bangla math\\problems};
-  \node[box, right=0.45cm of ft] (merge) {Merged\\16-bit model};
-  \node[q, below left=0.9cm and -0.9cm of merge] (rtn) {RTN 8 / 4 / 3-bit\\NF4 4-bit\\\scriptsize no data};
-  \node[q, below right=0.9cm and -0.9cm of merge] (gptq) {GPTQ 4 / 3-bit\\\scriptsize calibrated};
-  \node[c, right=0.4cm of gptq] (cal) {5 calibration sets\\(Table~\ref{tab:calib})\\$\times$ 3 seeds};
-  \node[box, below=2.6cm of merge, minimum width=6.8cm] (eval) {\NumEval{} held-out Bangla problems: accuracy $\cdot$ failure types $\cdot$ paired tests};
-  \draw[arr] (base) -- (ft);
-  \draw[arr] (ft) -- (merge);
-  \draw[arr] (merge) -- (rtn);
-  \draw[arr] (merge) -- (gptq);
-  \draw[arr] (cal) -- (gptq);
-  \draw[arr] (rtn) -- (rtn |- eval.north);
-  \draw[arr] (gptq) -- (gptq |- eval.north);
-\end{tikzpicture}}
-\caption{Study design. One fine-tuned model is quantized with data-free methods (RTN, NF4) and with GPTQ under five calibration sets. Every variant, and the 16-bit reference, answers the same held-out problems.}
-\label{fig:overview}
-\end{figure*}
 
 % ================================================================ related work
 \section{Related Work}
@@ -118,7 +89,7 @@ We fine-tune Gemma-2~2B-it \citep{gemma2024gemma2} with QLoRA \citep{dettmers202
 We use \emph{simulated} quantization: weights are rounded and stored back in 16-bit, so the model computes with exactly the values a low-bit kernel would use. This is standard for measuring accuracy and lets every method run on the same machine (\EvalDevice). Sizes are computed from the bit widths; we do not report speed, which depends on hardware kernels rather than on the method.
 
 \paragraph{Calibration sets.}
-Table~\ref{tab:calib} lists the five calibration sets, each with \NumCalib{} samples of up to 512 tokens. The first three follow common practice. The last two form a \emph{parallel} pair: we matched Bangla training problems to their English originals in NuminaMath-CoT by their numbers and final answers (1,370 unique matches), so the two sets contain exactly the same problems and differ only in language. Each 4-bit configuration is quantized with \NumSeeds{} random samples (seeds); 3-bit GPTQ uses one seed.
+Table~\ref{tab:calib} lists the five calibration sets, each with \NumCalib{} samples of up to 512 tokens. The first three follow common practice; English Wikipedia is WikiText-2 \citep{merity2017wikitext}. The last two form a \emph{parallel} pair: we matched Bangla training problems to their English originals in NuminaMath-CoT by their numbers and final answers (1,370 unique matches), so the two sets contain exactly the same problems and differ only in language. Each 4-bit configuration is quantized with \NumSeeds{} random samples (seeds); 3-bit GPTQ uses one seed.
 
 \begin{table}[t]
 \centering
@@ -153,20 +124,21 @@ All models answer the same problems, so we compare them with a paired bootstrap 
 \begin{table*}[t]
 \centering
 \small
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrrr}
 \toprule
 Method & Bits/weight & Size (GB) & Accuracy (\%) & $\Delta$ vs.\ 16-bit (pp) [95\% CI] & Lost / gained (\%) \\
 \midrule
 \tablebody{tables/main.tex}
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \caption{Accuracy and size on \NumEval{} held-out Bangla math problems. 4-bit GPTQ rows are mean~$\pm$~std over \NumSeeds{} calibration seeds. $\Delta$: paired-bootstrap difference; * = significant after Holm correction over the ten comparisons with 16-bit. Lost / gained: share of problems solved by 16-bit that the quantized model fails, and share of 16-bit failures it solves.}
 \label{tab:main}
 \end{table*}
 
 \subsection{The method matters more than the bit width}
 
-Table~\ref{tab:main} and Figure~\ref{fig:tradeoff} summarize accuracy and size. The 16-bit model solves \RefAcc\% of the problems.
+Table~\ref{tab:main} summarizes accuracy and size. The 16-bit model solves \RefAcc\% of the problems.
 
 \textbf{8 bits cost nothing.} RTN 8-bit shrinks the model from \RefSize{} to 2.99~GB (39\% smaller) with identical accuracy.
 
@@ -174,18 +146,11 @@ Table~\ref{tab:main} and Figure~\ref{fig:tradeoff} summarize accuracy and size. 
 
 \textbf{At 3 bits, RTN collapses.} It solves no problem at all, while 3-bit GPTQ still solves \AccGptqThree\% (difference \DeltaGptqRtnThree, $p<0.001$).
 
-With ten methods compared to 16-bit, only the 3-bit RTN drop survives the Holm correction. The 4-bit losses, between 0.2 and 7 points, are too small to confirm individually with \NumEval{} problems, but the direct GPTQ-versus-RTN comparisons are significant at both bit widths.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{../results/fig_tradeoff.pdf}
-\caption{Accuracy of each method, ordered by model size. Bars: std over calibration seeds. Grey line: 16-bit.}
-\label{fig:tradeoff}
-\end{figure}
+Against 16-bit, only the 3-bit RTN drop survives the Holm correction; 4-bit losses of 0.2 to 7 points are too small to confirm with \NumEval{} problems.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.9\textwidth]{../results/fig_calibration.pdf}
+\includegraphics[width=0.82\textwidth]{../results/fig_calibration.pdf}
 \caption{4-bit GPTQ under each calibration set. Left: accuracy. Right: share of outputs that fall into repetition loops. Dots are calibration seeds, bars are means, grey lines show the 16-bit model. The two rightmost sets contain the same problems in Bangla and English.}
 \label{fig:calibration}
 \end{figure*}
@@ -194,18 +159,11 @@ With ten methods compared to 16-bit, only the 3-bit RTN drop survives the Holm c
 
 Figure~\ref{fig:calibration} compares the five calibration sets for 4-bit GPTQ.
 
-\textbf{Accuracy.} Bangla calibration gives the highest accuracy in both designs: \AccBangla\% for Bangla math versus \AccEnglishWiki\% for English Wikipedia, and \AccBanglaParallel\% versus \AccEnglishParallel\% for the parallel pair. None of these differences is significant after correction (Bangla math vs.\ English Wikipedia: \DeltaLangDomain, Holm $p=\PLangDomain$; parallel pair: \DeltaLangParallel, $p=\PLangParallel$). Differences between calibration seeds are as large as differences between sets: English parallel seeds range from 12.5\% to 19.0\%.
+\textbf{Accuracy.} Bangla calibration gives the highest accuracy in both designs: \AccBangla\% for Bangla math versus \AccEnglishWiki\% for English Wikipedia, and \AccBanglaParallel\% versus \AccEnglishParallel\% for the parallel pair. None of these differences is significant after correction (Bangla math vs.\ English Wikipedia: \DeltaLangDomain, Holm $p=\PLangDomain$; parallel pair: \DeltaLangParallel, $p=\PLangParallel$). Seed-to-seed differences are as large as differences between sets (English parallel: 12.5--19.0\%).
 
-\textbf{Repetition.} The language of the calibration set has a clear effect on how the model fails. With Bangla calibration, 43--44\% of outputs contain a repetition loop, the same as the 16-bit model (44.5\%). With any English calibration set, 52--54\% do. On identical problems, switching the calibration language from English to Bangla reduces repetitive outputs by \RepDeltaLangParallel{} (Holm $p<0.001$). Changing only the domain, from English Wikipedia to English math, has no effect (\RepDeltaDomain, $p=\RepPDomain$). The cause is therefore the calibration language, not the topic or the source of the text.
+\textbf{Repetition.} The language of the calibration set has a clear effect on how the model fails. With Bangla calibration, 43--44\% of outputs contain a repetition loop, the same as the 16-bit model (44.5\%). With any English calibration set, 52--54\% do. On identical problems, switching the calibration language from English to Bangla reduces repetitive outputs by \RepDeltaLangParallel{} (Holm $p<0.001$). Changing only the domain, from English Wikipedia to English math, has no effect (\RepDeltaDomain, $p=\RepPDomain$). The cause is the calibration language, not the topic.
 
 \subsection{Quantized models repeat; they do not drift}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{../results/fig_errors.pdf}
-\caption{Failure types as a share of all problems; the remainder of each bar is solved. Values in Table~\ref{tab:errors}.}
-\label{fig:errors}
-\end{figure}
 
 \begin{table}[t]
 \centering
@@ -223,7 +181,7 @@ Method & Wrong & Limit & Stopped & Repet. & Drift & Tokens \\
 \label{tab:errors}
 \end{table}
 
-Figure~\ref{fig:errors} and Table~\ref{tab:errors} show how models fail. Even the 16-bit model fails in two main ways: a wrong answer (39.5\%) or no answer within the token limit (39.5\%). The second kind is almost always a loop: 82--99\% of outputs that hit the limit are repetitive, in every configuration.
+Table~\ref{tab:errors} shows how models fail. Even the 16-bit model fails in two main ways: a wrong answer (39.5\%) or no answer within the token limit (39.5\%). The second kind is almost always a loop: 82--99\% of outputs that hit the limit are repetitive, in every configuration.
 
 Quantization error shifts failures toward these loops. Unfinished outputs rise from 39.5\% (16-bit) to 52.5\% with RTN 4-bit and 98.5\% with RTN 3-bit, and outputs grow longer (from 499 to 565 and 761 tokens on average). A typical RTN 3-bit output ends by repeating, in Bangla, ``\dots to consider how many possible cases of the divisor there are, based on the relation between dividend and remainder, we\dots'' until the budget runs out.
 
@@ -235,14 +193,12 @@ The last column of Table~\ref{tab:main} shows that quantized models solve differ
 
 \subsection{Why long outputs matter for Bangla}
 
-Gemma's tokenizer uses \FertBangla{} tokens per word on Bangla solutions and \FertEnglish{} on English text, a ratio of \FertRatio$\times$; the median reference solution in the dataset is \SolutionTokens{} tokens long. Each generation step is a chance for quantization error to start a loop, so a language that needs three times as many steps per word gives this failure mode more room. This is consistent with our finding that quantization damage appears mainly as unfinished, repetitive output.
+Gemma's tokenizer uses \FertBangla{} tokens per word on Bangla solutions and \FertEnglish{} on English text (\FertRatio$\times$); the median reference solution is \SolutionTokens{} tokens long. Each generation step is a chance for quantization error to start a loop, consistent with damage appearing mainly as unfinished, repetitive output.
 
 % ================================================================ conclusion
 \section{Conclusion}
 
-We quantized a small Bangla math model with seven configurations and five calibration sets. Three findings stand out. First, the quantization method matters more than the bit width: 8-bit rounding is free, GPTQ keeps nearly all accuracy at 4 bits, and plain rounding collapses at 3 bits. Second, calibration language did not measurably change accuracy at our sample size, but English calibration made outputs fall into repetition loops about ten points more often, even on identical problems, while changing the domain did not. Third, aggregate accuracy hides most of these effects.
-
-For practitioners deploying quantized models in low-resource languages, we recommend calibrating with text in the target language, comparing several calibration seeds, and monitoring outputs for repetition and unfinished answers, which accuracy and language-identification checks both miss.
+For a small Bangla math model, the quantization method matters more than the bit width, and the calibration language changes how the model fails rather than how often it succeeds: English calibration makes outputs fall into repetition loops about ten points more often, even on identical problems. For low-resource deployments, we recommend calibrating in the target language, comparing several calibration seeds, and monitoring repetition and unfinished answers, which accuracy and language-identification checks both miss.
 
 % ================================================================ limitations
 \section*{Limitations}
@@ -250,9 +206,13 @@ For practitioners deploying quantized models in low-resource languages, we recom
 We study one model (Gemma-2~2B) fine-tuned on one machine-translated dataset, so results may not transfer to larger models, other languages or other tasks. The test set contains \NumEval{} problems with the shortest third of reference solutions; with this sample, accuracy differences of a few points cannot be confirmed, and 3-bit GPTQ was run with a single seed. The repetition measure was defined after we observed that most unfinished outputs were loops, so the repetition comparisons are a secondary analysis, although they are corrected for multiple testing. One of the 24 GPTQ runs was interrupted by memory pressure and resumed after re-quantizing with the same seed and calibration data; we did not verify that the two quantizations are bit-identical. We use simulated quantization, which reproduces accuracy but not speed, and does not model LLM.int8's outlier handling or NF4's double quantization. Answer matching is automatic and ignores the quality of the reasoning and the Bangla prose. We do not study activation quantization, AWQ, or 2-bit weights.
 
 % ================================================================ ethics
-\section*{Ethics Statement}
+\section*{Ethical Considerations}
 
 The model is a study object, not a tutoring system: even before quantization it solves only \RefAcc\% of the test problems and can produce fluent but wrong solutions. All data are public and contain no personal information.
+
+\section*{Acknowledgments}
+
+We used an AI assistant (Claude, Anthropic) for help with code and for editing the text. The authors checked all code, results and text and take full responsibility for them.
 
 \bibliography{references}
 
