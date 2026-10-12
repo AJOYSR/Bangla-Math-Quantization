@@ -1,0 +1,21 @@
+# Large or machine-specific
+models/
+checkpoints/
+.venv/
+logs/
+
+# Interrupted-run checkpoints (finished runs are kept in results/)
+results/*.partial.jsonl
+results/noise/*.partial.jsonl
+
+# Python / OS / LaTeX
+__pycache__/
+.pytest_cache/
+.DS_Store
+.env
+*.aux
+*.log
+*.out
+*.bbl
+*.blg
+*.synctex.gz

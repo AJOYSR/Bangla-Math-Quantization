@@ -1,0 +1,23 @@
+{
+  "variant": "16bit-b8",
+  "simulated": true,
+  "method": "16bit",
+  "bits": 16,
+  "group_size": 128,
+  "calib": null,
+  "n_calib": null,
+  "seed": null,
+  "n": 200,
+  "max_new_tokens": 768,
+  "max_ref_tokens": 384,
+  "accuracy": 0.155,
+  "boxed_rate": 0.58,
+  "bits_per_weight": 16.0,
+  "size_gb": 4.87,
+  "quantized_params": 2024275968,
+  "total_params": 2614341888,
+  "quant_minutes": 0.0,
+  "eval_minutes": 66.46,
+  "throughput_tok_s": 24.9,
+  "device": "mps"
+}

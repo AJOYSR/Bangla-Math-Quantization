@@ -1,0 +1,23 @@
+{
+  "variant": "rtn-w3",
+  "simulated": true,
+  "method": "rtn",
+  "bits": 3,
+  "group_size": 128,
+  "calib": null,
+  "n_calib": null,
+  "seed": null,
+  "n": 200,
+  "max_new_tokens": 768,
+  "max_ref_tokens": 384,
+  "accuracy": 0.0,
+  "boxed_rate": 0.005,
+  "bits_per_weight": 3.148,
+  "size_gb": 1.841,
+  "quantized_params": 2024275968,
+  "total_params": 2614341888,
+  "quant_minutes": 0.01,
+  "eval_minutes": 51.42,
+  "throughput_tok_s": 49.3,
+  "device": "mps"
+}

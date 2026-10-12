@@ -1,0 +1,12 @@
+{
+  "bangla_math_solutions": {
+    "tokens_per_word": 3.4885454712612938,
+    "chars_per_token": 1.7666976525776605
+  },
+  "english_wikitext": {
+    "tokens_per_word": 1.1841467021591245,
+    "chars_per_token": 4.505495054450994
+  },
+  "bangla_solution_tokens_median": 511.0,
+  "fertility_ratio": 2.946041622123697
+}

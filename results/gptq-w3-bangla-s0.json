@@ -1,0 +1,23 @@
+{
+  "variant": "gptq-w3-bangla-s0",
+  "simulated": true,
+  "method": "gptq",
+  "bits": 3,
+  "group_size": 128,
+  "calib": "bangla",
+  "n_calib": 128,
+  "seed": 0,
+  "n": 200,
+  "max_new_tokens": 768,
+  "max_ref_tokens": 384,
+  "accuracy": 0.145,
+  "boxed_rate": 0.485,
+  "bits_per_weight": 3.148,
+  "size_gb": 1.841,
+  "quantized_params": 2024275968,
+  "total_params": 2614341888,
+  "quant_minutes": 13.11,
+  "eval_minutes": 52.28,
+  "throughput_tok_s": 34.2,
+  "device": "mps"
+}

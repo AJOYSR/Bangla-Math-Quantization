@@ -1,0 +1,15 @@
+# Versions used for the paper (Python 3.11, Apple M1 Pro / MPS).
+torch==2.14.1
+transformers==4.49.0
+peft==0.15.2
+accelerate==1.4.0
+datasets==3.6.0
+matplotlib==3.11.2
+safetensors==0.8.0
+sentencepiece==0.2.2
+
+# Optional, only for the real-kernel CUDA path (run_all.sh, src/evaluate.py, src/quantize_gptq.py):
+#   bitsandbytes>=0.43
+#   pip install -v gptqmodel --no-build-isolation
+# Optional, only for retraining the adapter (src/train_lora.py):
+#   unsloth trl

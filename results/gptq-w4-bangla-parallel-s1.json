@@ -1,0 +1,23 @@
+{
+  "variant": "gptq-w4-bangla-parallel-s1",
+  "simulated": true,
+  "method": "gptq",
+  "bits": 4,
+  "group_size": 128,
+  "calib": "bangla-parallel",
+  "n_calib": 128,
+  "seed": 1,
+  "n": 200,
+  "max_new_tokens": 768,
+  "max_ref_tokens": 384,
+  "accuracy": 0.145,
+  "boxed_rate": 0.57,
+  "bits_per_weight": 4.156,
+  "size_gb": 2.079,
+  "quantized_params": 2024275968,
+  "total_params": 2614341888,
+  "quant_minutes": 12.81,
+  "eval_minutes": 53.65,
+  "throughput_tok_s": 32.2,
+  "device": "mps"
+}
